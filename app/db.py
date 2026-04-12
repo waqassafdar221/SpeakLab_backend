@@ -1,12 +1,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from pydantic_settings import BaseSettings
-
-from pydantic_settings import BaseSettings
+import os
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "sqlite:///./dev.db"
-    MEDIA_DIR: str = "./media"
+    # Vercel serverless functions can only write to /tmp
+    DATABASE_URL: str = "sqlite:////tmp/dev.db" if os.getenv("VERCEL") else "sqlite:///./dev.db"
+    MEDIA_DIR: str = "/tmp/media" if os.getenv("VERCEL") else "./media"
     jwt_secret: str = "change_me"
     jwt_algo: str = "HS256"
     hf_api_key: str = ""

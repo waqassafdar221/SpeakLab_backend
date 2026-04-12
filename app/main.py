@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+import os
 from .db import Base, engine, settings
 from .routers import users, admin, tts, voices
 
@@ -27,6 +28,7 @@ app.include_router(voices.router)
 app.include_router(tts.router)
 
 # Static serving for generated media
+os.makedirs(settings.MEDIA_DIR, exist_ok=True)
 app.mount("/media", StaticFiles(directory=settings.MEDIA_DIR), name="media")
 
 @app.get("/")
