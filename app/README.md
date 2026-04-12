@@ -16,8 +16,7 @@ Request body for `/tts/generate`:
 ```
 {
   "text": "Hello world",
-  "public_voice": "en_us_jenny",   # optional; see /voices/public
-  "voice_id": 123                    # optional; your saved voice (overrides public_voice)
+  "public_voice": "en_us_jenny"   # required; see /voices/public
 }
 ```
 
@@ -34,7 +33,6 @@ Response:
 
 Notes:
 - Cost is 1 credit per input character. Requests require an authenticated user with sufficient credits.
-- If both `voice_id` and `public_voice` are provided, `voice_id` wins and its `provider_voice_id` is used directly.
 
 ## Quick start (Windows PowerShell)
 

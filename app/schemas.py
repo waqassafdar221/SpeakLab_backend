@@ -22,7 +22,6 @@ class CreateUserReq(BaseModel):
 
 class TTSReq(BaseModel):
     text: str
-    voice_id: int | None = None
     public_voice: str | None = None
 
 class CreateClonedVoiceReq(BaseModel):
