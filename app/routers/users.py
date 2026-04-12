@@ -10,7 +10,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/login", response_model=TokenResp)
 def login(body: LoginReq, db: Session = Depends(get_db)):
-    u = db.query(User).filter_by(username=body.username).first()
+    identifier = (body.username or "").strip()
+    u = db.query(User).filter(
+        (User.username == identifier) | (User.email == identifier)
+    ).first()
     if not u or not verify_pw(body.password, u.password_hash):
         raise HTTPException(401, "Invalid credentials")
     return TokenResp(access_token=make_token(u.username, u.is_admin))
