@@ -4,8 +4,7 @@ from pydantic_settings import BaseSettings
 import os
 
 class Settings(BaseSettings):
-    # Vercel serverless functions can only write to /tmp
-    DATABASE_URL: str = "sqlite:////tmp/dev.db" if os.getenv("VERCEL") else "sqlite:///./dev.db"
+    DATABASE_URL: str = "postgresql://user:password@localhost:5432/postgres"
     MEDIA_DIR: str = "/tmp/media" if os.getenv("VERCEL") else "./media"
     MEDIA_STORAGE: str = "r2" if os.getenv("VERCEL") else "local"  # local | r2
     R2_ENDPOINT_URL: str = "https://d37ae443348786f63a7cde59db69f9a2.r2.cloudflarestorage.com/speaklab-media"
