@@ -1,17 +1,16 @@
-import os, uuid
+import uuid
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from ..db import get_db, settings as app_settings
+from ..db import get_db
 from ..models import User, Job
 from ..schemas import TTSReq
 from ..deps import current_user
+from ..storage import save_audio_output
 
 from ..providers.edge_tts_provider import EdgeTTSProvider
 
 router = APIRouter(prefix="/tts", tags=["tts"])
-MEDIA_DIR = app_settings.MEDIA_DIR
-os.makedirs(MEDIA_DIR, exist_ok=True)
 
 _provider = None
 def provider():
@@ -54,15 +53,13 @@ async def generate(body: TTSReq, db: Session = Depends(get_db), user: User = Dep
         print(f"Synthesis error: {str(e)}")
         raise HTTPException(500, f"Synthesis failed: {e}")
 
-    # Persist to file
+    # Persist to configured media storage
     fname = f"{uuid.uuid4()}.{ext}"
-    fpath = os.path.join(MEDIA_DIR, fname)
-    with open(fpath, "wb") as f:
-        f.write(audio_bytes)
+    output_url = save_audio_output(audio_bytes, fname, ext)
 
     # Complete job
     job.status = "done"
-    job.output_url = f"/media/{os.path.basename(fname)}"
+    job.output_url = output_url
     job.completed_at = datetime.utcnow()
     db.commit()
 
@@ -92,10 +89,8 @@ async def demo_generate(body: TTSReq):
         print(f"Demo synthesis error: {str(e)}")
         raise HTTPException(500, f"Synthesis failed: {e}")
 
-    # Persist to file
+    # Persist to configured media storage
     fname = f"demo_{uuid.uuid4()}.{ext}"
-    fpath = os.path.join(MEDIA_DIR, fname)
-    with open(fpath, "wb") as f:
-        f.write(audio_bytes)
+    output_url = save_audio_output(audio_bytes, fname, ext)
 
-    return {"status": "done", "output_url": f"/media/{os.path.basename(fname)}"}
+    return {"status": "done", "output_url": output_url}

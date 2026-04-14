@@ -68,3 +68,16 @@ python -m app.bootstrap_admin admin admin@example.com MySecureP@ss
 - Call `/tts/generate` with your text.
 
 Media files are saved in `./media` and served under `/media`.
+
+## Cloudflare R2 media output (optional)
+
+To store generated audio in Cloudflare R2 instead of local `/media`, set:
+
+- `MEDIA_STORAGE=r2`
+- `R2_ENDPOINT_URL=https://d37ae443348786f63a7cde59db69f9a2.r2.cloudflarestorage.com/speaklab-media`
+- `R2_BUCKET_NAME=speaklab-media`
+- `R2_PUBLIC_BASE_URL=https://d37ae443348786f63a7cde59db69f9a2.r2.cloudflarestorage.com/speaklab-media`
+- `R2_ACCESS_KEY_ID=<your_r2_access_key>`
+- `R2_SECRET_ACCESS_KEY=<your_r2_secret_key>`
+
+If these are not set, backend falls back to local media storage.

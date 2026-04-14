@@ -5,3 +5,4 @@ pydantic-settings>=2.3
 python-jose[cryptography]>=3.3
 passlib>=1.7
 edge-tts>=6.1
+boto3>=1.34
