@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from .db import Base, engine, settings
 from .db import SessionLocal
-from .routers import users, admin, tts, voices
+from .routers import users, admin, tts, voices, transcription
 from .models import User, Package
 from .auth import hash_pw
 
@@ -72,6 +72,7 @@ app.include_router(users.users_router)
 app.include_router(admin.router)
 app.include_router(voices.router)
 app.include_router(tts.router)
+app.include_router(transcription.router)
 
 # Static serving for generated media
 os.makedirs(settings.MEDIA_DIR, exist_ok=True)

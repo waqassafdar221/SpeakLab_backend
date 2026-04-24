@@ -10,3 +10,4 @@ httpx>=0.27
 edge-tts>=6.1
 boto3>=1.34
 psycopg2-binary>=2.9.9
+python-multipart>=0.0.9

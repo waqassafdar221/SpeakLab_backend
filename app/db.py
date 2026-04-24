@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "change_me"
     jwt_algo: str = "HS256"
     hf_api_key: str = ""
+    GROQ_API_KEY: str = ""
 
     class Config:
         env_file = ".env"
