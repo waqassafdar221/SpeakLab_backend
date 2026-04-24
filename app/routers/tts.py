@@ -46,7 +46,13 @@ async def generate(body: TTSReq, db: Session = Depends(get_db), user: User = Dep
     # Synthesize audio
     try:
         # Use Edge TTS for public voices
-        audio_bytes, ext = await provider().synthesize(text, public_voice_key=body.public_voice)
+        audio_bytes, ext = await provider().synthesize(
+            text,
+            public_voice_key=body.public_voice,
+            speed=body.speed,
+            pitch=body.pitch,
+            volume=body.volume,
+        )
     except Exception as e:
         job.status = "error"
         db.commit()
@@ -84,7 +90,13 @@ async def demo_generate(body: TTSReq):
 
     # Synthesize audio using Edge TTS
     try:
-        audio_bytes, ext = await provider().synthesize(text, public_voice_key=body.public_voice)
+        audio_bytes, ext = await provider().synthesize(
+            text,
+            public_voice_key=body.public_voice,
+            speed=body.speed,
+            pitch=body.pitch,
+            volume=body.volume,
+        )
     except Exception as e:
         print(f"Demo synthesis error: {str(e)}")
         raise HTTPException(500, f"Synthesis failed: {e}")

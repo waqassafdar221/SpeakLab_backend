@@ -900,6 +900,9 @@ class EdgeTTSProvider:
         text: str,
         public_voice_key: Optional[str] = None,
         voice_name: Optional[str] = None,
+        speed: Optional[float] = 1.0,
+        pitch: Optional[int] = 0,
+        volume: Optional[float] = 1.0,
     ) -> Tuple[bytes, str]:
         """
         Generate speech audio for the given text.
@@ -915,8 +918,25 @@ class EdgeTTSProvider:
             voice = PUBLIC_VOICES[public_voice_key]["voice_id"]
         else:
             voice = PUBLIC_VOICES[self.default_voice_key]["voice_id"]
-            
-        communicate = edge_tts.Communicate(text, voice=voice)
+
+        speed_val = max(0.5, min(2.0, float(speed if speed is not None else 1.0)))
+        pitch_val = max(-50, min(50, int(pitch if pitch is not None else 0)))
+        volume_val = max(0.0, min(2.0, float(volume if volume is not None else 1.0)))
+
+        rate_pct = int(round((speed_val - 1.0) * 100))
+        volume_pct = int(round((volume_val - 1.0) * 100))
+
+        rate_str = f"{rate_pct:+d}%"
+        pitch_str = f"{pitch_val:+d}Hz"
+        volume_str = f"{volume_pct:+d}%"
+
+        communicate = edge_tts.Communicate(
+            text,
+            voice=voice,
+            rate=rate_str,
+            pitch=pitch_str,
+            volume=volume_str,
+        )
         chunks = []
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 class LoginReq(BaseModel):
     username: str
@@ -23,6 +23,9 @@ class CreateUserReq(BaseModel):
 class TTSReq(BaseModel):
     text: str
     public_voice: str | None = None
+    speed: float | None = Field(default=1.0, ge=0.5, le=2.0)
+    pitch: int | None = Field(default=0, ge=-50, le=50)
+    volume: float | None = Field(default=1.0, ge=0.0, le=2.0)
 
 class CreateClonedVoiceReq(BaseModel):
     name: str
