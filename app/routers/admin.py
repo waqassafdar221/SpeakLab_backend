@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from sqlalchemy import func, cast, Date
+from datetime import datetime, timedelta, date
 from ..db import get_db
-from ..models import User, Package
+from ..models import User, Package, Job
 from ..schemas import PackageReq, CreateUserReq
 from ..deps import require_admin
 from ..auth import hash_pw
@@ -109,6 +110,49 @@ def delete_user(user_id: int, db: Session = Depends(get_db), _=Depends(require_a
     db.delete(u)
     db.commit()
     return {"message": "User deleted successfully"}
+
+@router.get("/analytics/users-growth")
+def users_growth(db: Session = Depends(get_db), _=Depends(require_admin)):
+    since = datetime.now() - timedelta(days=29)
+    rows = (
+        db.query(cast(User.created_at, Date).label("day"), func.count(User.id).label("count"))
+        .filter(User.created_at >= since)
+        .group_by(cast(User.created_at, Date))
+        .order_by(cast(User.created_at, Date))
+        .all()
+    )
+    # Build full 30-day range with 0-fill for missing days
+    result = {}
+    for i in range(30):
+        d = (since + timedelta(days=i)).date() if isinstance(since, datetime) else since + timedelta(days=i)
+        result[str(d)] = 0
+    for row in rows:
+        result[str(row.day)] = row.count
+    return [{"date": k, "count": v} for k, v in sorted(result.items())]
+
+
+@router.get("/analytics/jobs-usage")
+def jobs_usage(db: Session = Depends(get_db), _=Depends(require_admin)):
+    since = datetime.now() - timedelta(days=29)
+    rows = (
+        db.query(
+            cast(Job.created_at, Date).label("day"),
+            func.count(Job.id).label("jobs"),
+            func.coalesce(func.sum(Job.cost), 0).label("credits"),
+        )
+        .filter(Job.created_at >= since, Job.job_type == "tts")
+        .group_by(cast(Job.created_at, Date))
+        .order_by(cast(Job.created_at, Date))
+        .all()
+    )
+    result: dict[str, dict] = {}
+    for i in range(30):
+        d = (since + timedelta(days=i)).date()
+        result[str(d)] = {"jobs": 0, "credits": 0}
+    for row in rows:
+        result[str(row.day)] = {"jobs": row.jobs, "credits": int(row.credits)}
+    return [{"date": k, "jobs": v["jobs"], "credits": v["credits"]} for k, v in sorted(result.items())]
+
 
 @router.post("/expire-credits")
 def expire_all_credits(db: Session = Depends(get_db), _=Depends(require_admin)):
