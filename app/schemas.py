@@ -27,6 +27,10 @@ class TTSReq(BaseModel):
     pitch: int | None = Field(default=0, ge=-50, le=50)
     volume: float | None = Field(default=1.0, ge=0.0, le=2.0)
 
+class ChangePasswordReq(BaseModel):
+    current_password: str
+    new_password: str
+
 class CreateClonedVoiceReq(BaseModel):
     name: str
     gender: str

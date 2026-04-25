@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import User
-from ..schemas import LoginReq, TokenResp
-from ..auth import verify_pw, make_token
+from ..schemas import LoginReq, TokenResp, ChangePasswordReq
+from ..auth import verify_pw, hash_pw, make_token
 from ..deps import current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -31,3 +31,17 @@ def get_me(user: User = Depends(current_user)):
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "expiry_date": user.expiry_date.isoformat() if user.expiry_date else None,
     }
+
+@users_router.post("/change-password")
+def change_password(
+    body: ChangePasswordReq,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    if not verify_pw(body.current_password, user.password_hash):
+        raise HTTPException(400, "Current password is incorrect")
+    if len(body.new_password) < 8:
+        raise HTTPException(400, "Password must be at least 8 characters")
+    user.password_hash = hash_pw(body.new_password)
+    db.commit()
+    return {"message": "Password changed successfully"}
