@@ -5,8 +5,21 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 router = APIRouter(prefix="/transcription", tags=["transcription"])
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
-ALLOWED_EXTENSIONS = {".mp3", ".wav", ".mp4", ".m4a", ".ogg", ".webm", ".flac"}
 MAX_FILE_SIZE = 25 * 1024 * 1024  # 25MB
+
+# Maps extension → MIME type accepted by Groq Whisper
+EXT_MIME = {
+    ".flac": "audio/flac",
+    ".mp3":  "audio/mpeg",
+    ".mp4":  "audio/mp4",
+    ".m4a":  "audio/mp4",
+    ".ogg":  "audio/ogg",
+    ".opus": "audio/ogg",
+    ".wav":  "audio/wav",
+    ".webm": "audio/webm",
+    ".mpeg": "audio/mpeg",
+    ".mpga": "audio/mpeg",
+}
 
 
 @router.post("/transcribe")
@@ -22,10 +35,10 @@ async def transcribe_audio(file: UploadFile = File(...)):
         ext = ".webm"
         filename = f"audio{ext}"
 
-    if ext not in ALLOWED_EXTENSIONS:
+    if ext not in EXT_MIME:
         raise HTTPException(
             400,
-            f"Unsupported format. Supported: {', '.join(sorted(ALLOWED_EXTENSIONS))}",
+            f"Unsupported format. Supported: {', '.join(sorted(EXT_MIME))}",
         )
 
     file_content = await file.read()
@@ -36,7 +49,9 @@ async def transcribe_audio(file: UploadFile = File(...)):
     if len(file_content) == 0:
         raise HTTPException(400, "Audio file is empty.")
 
-    content_type = file.content_type or "audio/webm"
+    # Always use extension-derived MIME type — browser content_type can
+    # include codec params (e.g. "audio/webm;codecs=opus") that Groq rejects.
+    content_type = EXT_MIME[ext]
 
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
