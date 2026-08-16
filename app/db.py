@@ -48,15 +48,19 @@ def ensure_role_columns():
     if "users" not in inspector.get_table_names():
         return  # fresh database; create_all() will create the current schema
 
-    columns = {col["name"] for col in inspector.get_columns("users")}
+    column_info = {col["name"]: col for col in inspector.get_columns("users")}
     with engine.begin() as conn:
-        if "role" not in columns:
+        if "role" not in column_info:
             conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20)"))
-            if "is_admin" in columns:
+            if "is_admin" in column_info:
                 conn.execute(text(
                     "UPDATE users SET role = CASE WHEN is_admin THEN 'admin' ELSE 'customer' END"
                 ))
             else:
                 conn.execute(text("UPDATE users SET role = 'customer' WHERE role IS NULL"))
-        if "vendor_id" not in columns:
+        if "vendor_id" not in column_info:
             conn.execute(text("ALTER TABLE users ADD COLUMN vendor_id INTEGER REFERENCES users(id)"))
+        # is_admin is no longer written by the app (superseded by role); relax its
+        # NOT NULL constraint so new inserts don't have to fake a value for it.
+        if "is_admin" in column_info and not column_info["is_admin"]["nullable"] and engine.dialect.name == "postgresql":
+            conn.execute(text("ALTER TABLE users ALTER COLUMN is_admin DROP NOT NULL"))
