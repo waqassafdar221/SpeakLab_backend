@@ -23,6 +23,8 @@ class User(Base):
     package: Mapped[Package | None] = relationship(backref="users")
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     expiry_date: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), default=None)
+    invite_token: Mapped[str | None] = mapped_column(String(64), default=None)
+    invite_expires_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), default=None)
 
 class Voice(Base):
     __tablename__ = "voices"

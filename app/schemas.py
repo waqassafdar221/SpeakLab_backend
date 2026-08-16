@@ -17,7 +17,6 @@ class PackageReq(BaseModel):
 class CreateUserReq(BaseModel):
     username: str
     email: EmailStr
-    password: str
     role: Literal["vendor", "customer"] = "customer"
     package_id: int | None = None
     initial_credits: int = 0
@@ -26,9 +25,13 @@ class CreateUserReq(BaseModel):
 class CreateCustomerReq(BaseModel):
     username: str
     email: EmailStr
-    password: str
     package_id: int | None = None
     initial_credits: int = 0
+
+
+class SetPasswordReq(BaseModel):
+    token: str
+    password: str
 
 class TTSReq(BaseModel):
     text: str

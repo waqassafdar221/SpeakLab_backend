@@ -7,6 +7,7 @@ from ..models import User, Job, Package
 from ..schemas import CreateCustomerReq
 from ..deps import require_vendor
 from ..crud import create_user_row
+from ..email_service import send_invite_email
 
 router = APIRouter(prefix="/vendor", tags=["vendor"])
 
@@ -36,13 +37,13 @@ def create_customer(body: CreateCustomerReq, db: Session = Depends(get_db), vend
         db,
         username=body.username,
         email=body.email,
-        password=body.password,
         role="customer",
         vendor_id=vendor.id,
         package_id=body.package_id,
         initial_credits=body.initial_credits,
     )
-    return {"id": u.id, "username": u.username}
+    email_sent = send_invite_email(u.email, u.username, u.invite_token)
+    return {"id": u.id, "username": u.username, "email_sent": email_sent}
 
 
 @router.get("/customers")
@@ -54,6 +55,7 @@ def list_customers(db: Session = Depends(get_db), vendor: User = Depends(require
         "email": u.email,
         "credits": u.credits,
         "package_id": u.package_id,
+        "invite_pending": u.invite_token is not None,
         "created_at": u.created_at.isoformat() if u.created_at else None,
         "expiry_date": u.expiry_date.isoformat() if u.expiry_date else None,
     } for u in customers]

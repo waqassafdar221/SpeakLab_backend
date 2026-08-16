@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     jwt_algo: str = "HS256"
     hf_api_key: str = ""
     GROQ_API_KEY: str = ""
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    FRONTEND_BASE_URL: str = "http://localhost:3000"
 
     class Config:
         env_file = ".env"
@@ -64,3 +70,7 @@ def ensure_role_columns():
         # NOT NULL constraint so new inserts don't have to fake a value for it.
         if "is_admin" in column_info and not column_info["is_admin"]["nullable"] and engine.dialect.name == "postgresql":
             conn.execute(text("ALTER TABLE users ALTER COLUMN is_admin DROP NOT NULL"))
+        if "invite_token" not in column_info:
+            conn.execute(text("ALTER TABLE users ADD COLUMN invite_token VARCHAR(64)"))
+        if "invite_expires_at" not in column_info:
+            conn.execute(text("ALTER TABLE users ADD COLUMN invite_expires_at TIMESTAMP WITH TIME ZONE"))

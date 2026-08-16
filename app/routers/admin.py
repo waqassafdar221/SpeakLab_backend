@@ -7,6 +7,7 @@ from ..models import User, Package, Job
 from ..schemas import PackageReq, CreateUserReq
 from ..deps import require_admin
 from ..crud import create_user_row
+from ..email_service import send_invite_email
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -29,13 +30,13 @@ def create_user(body: CreateUserReq, db: Session = Depends(get_db), _=Depends(re
         db,
         username=body.username,
         email=body.email,
-        password=body.password,
         role=body.role,
         vendor_id=None,
         package_id=body.package_id,
         initial_credits=body.initial_credits,
     )
-    return {"id": u.id, "username": u.username, "role": u.role}
+    email_sent = send_invite_email(u.email, u.username, u.invite_token)
+    return {"id": u.id, "username": u.username, "role": u.role, "email_sent": email_sent}
 
 @router.get("/users")
 def list_users(db: Session = Depends(get_db), _=Depends(require_admin)):
@@ -54,6 +55,7 @@ def list_users(db: Session = Depends(get_db), _=Depends(require_admin)):
         "vendor_id": u.vendor_id,
         "vendor_username": vendor_username,
         "package_id": u.package_id,
+        "invite_pending": u.invite_token is not None,
         "created_at": u.created_at.isoformat() if u.created_at else None,
         "expiry_date": u.expiry_date.isoformat() if u.expiry_date else None
     } for u, vendor_username in rows]
