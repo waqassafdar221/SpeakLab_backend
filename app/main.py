@@ -2,9 +2,9 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import os
-from .db import Base, engine, settings
+from .db import Base, engine, settings, ensure_role_columns
 from .db import SessionLocal
-from .routers import users, admin, tts, voices, transcription
+from .routers import users, admin, vendor, tts, voices, transcription
 from .models import User, Package
 from .auth import hash_pw
 
@@ -20,7 +20,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create tables
+# Patch existing tables for the vendor tier (role/vendor_id), then create any new tables
+ensure_role_columns()
 Base.metadata.create_all(engine)
 
 
@@ -54,7 +55,7 @@ def ensure_bootstrap_admin():
             username=admin_username,
             email=admin_email,
             password_hash=hash_pw(admin_password),
-            is_admin=True,
+            role="admin",
             credits=admin_credits,
             package_id=pkg.id,
         )
@@ -70,6 +71,7 @@ ensure_bootstrap_admin()
 app.include_router(users.router)
 app.include_router(users.users_router)
 app.include_router(admin.router)
+app.include_router(vendor.router)
 app.include_router(voices.router)
 app.include_router(tts.router)
 app.include_router(transcription.router)

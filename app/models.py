@@ -15,7 +15,9 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(80), unique=True)
     email: Mapped[str] = mapped_column(String(120), unique=True)
     password_hash: Mapped[str] = mapped_column(String(200))
-    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    role: Mapped[str] = mapped_column(String(20), default="customer")  # 'admin' | 'vendor' | 'customer'
+    vendor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), default=None)
+    vendor: Mapped["User | None"] = relationship(remote_side=[id], foreign_keys=[vendor_id])
     credits: Mapped[int] = mapped_column(Integer, default=0)
     package_id: Mapped[int | None] = mapped_column(ForeignKey("packages.id"))
     package: Mapped[Package | None] = relationship(backref="users")

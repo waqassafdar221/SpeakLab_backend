@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic import BaseModel, EmailStr, Field
 
 class LoginReq(BaseModel):
@@ -14,6 +15,15 @@ class PackageReq(BaseModel):
     demo_char_limit: int = 500
 
 class CreateUserReq(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    role: Literal["vendor", "customer"] = "customer"
+    package_id: int | None = None
+    initial_credits: int = 0
+
+
+class CreateCustomerReq(BaseModel):
     username: str
     email: EmailStr
     password: str

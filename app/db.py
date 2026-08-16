@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from pydantic_settings import BaseSettings
 import os
@@ -38,3 +38,25 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def ensure_role_columns():
+    """Additive migration: add users.role / users.vendor_id if this table
+    predates the vendor tier, and backfill role from the old is_admin flag.
+    Never drops or renames columns — this runs against the live database."""
+    inspector = inspect(engine)
+    if "users" not in inspector.get_table_names():
+        return  # fresh database; create_all() will create the current schema
+
+    columns = {col["name"] for col in inspector.get_columns("users")}
+    with engine.begin() as conn:
+        if "role" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20)"))
+            if "is_admin" in columns:
+                conn.execute(text(
+                    "UPDATE users SET role = CASE WHEN is_admin THEN 'admin' ELSE 'customer' END"
+                ))
+            else:
+                conn.execute(text("UPDATE users SET role = 'customer' WHERE role IS NULL"))
+        if "vendor_id" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN vendor_id INTEGER REFERENCES users(id)"))

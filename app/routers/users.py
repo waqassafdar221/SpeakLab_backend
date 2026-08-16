@@ -16,7 +16,7 @@ def login(body: LoginReq, db: Session = Depends(get_db)):
     ).first()
     if not u or not verify_pw(body.password, u.password_hash):
         raise HTTPException(401, "Invalid credentials")
-    return TokenResp(access_token=make_token(u.username, u.is_admin))
+    return TokenResp(access_token=make_token(u.username, u.role))
 
 users_router = APIRouter(prefix="/users", tags=["users"])
 
@@ -27,7 +27,8 @@ def get_me(user: User = Depends(current_user)):
         "username": user.username,
         "email": user.email,
         "credits": user.credits,
-        "is_admin": user.is_admin,
+        "role": user.role,
+        "vendor_id": user.vendor_id,
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "expiry_date": user.expiry_date.isoformat() if user.expiry_date else None,
     }

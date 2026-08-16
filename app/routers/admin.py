@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from sqlalchemy import func, cast, Date
 from datetime import datetime, timedelta, date
 from ..db import get_db
 from ..models import User, Package, Job
 from ..schemas import PackageReq, CreateUserReq
 from ..deps import require_admin
-from ..auth import hash_pw
+from ..crud import create_user_row
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -25,33 +25,57 @@ def list_packages(db: Session = Depends(get_db), _=Depends(require_admin)):
 
 @router.post("/users")
 def create_user(body: CreateUserReq, db: Session = Depends(get_db), _=Depends(require_admin)):
-    if db.query(User).filter((User.username == body.username) | (User.email == body.email)).first():
-        raise HTTPException(400, "Username or email exists")
-    u = User(
+    u = create_user_row(
+        db,
         username=body.username,
         email=body.email,
-        password_hash=hash_pw(body.password),
-        is_admin=False,
-        credits=body.initial_credits,
+        password=body.password,
+        role=body.role,
+        vendor_id=None,
         package_id=body.package_id,
-        expiry_date=datetime.now() + timedelta(days=30)
+        initial_credits=body.initial_credits,
     )
-    db.add(u); db.commit(); db.refresh(u)
-    return {"id": u.id, "username": u.username}
+    return {"id": u.id, "username": u.username, "role": u.role}
 
 @router.get("/users")
 def list_users(db: Session = Depends(get_db), _=Depends(require_admin)):
-    users = db.query(User).all()
+    Vendor = aliased(User)
+    rows = (
+        db.query(User, Vendor.username)
+        .outerjoin(Vendor, User.vendor_id == Vendor.id)
+        .all()
+    )
     return [{
         "id": u.id,
         "username": u.username,
         "email": u.email,
         "credits": u.credits,
-        "is_admin": u.is_admin,
+        "role": u.role,
+        "vendor_id": u.vendor_id,
+        "vendor_username": vendor_username,
         "package_id": u.package_id,
         "created_at": u.created_at.isoformat() if u.created_at else None,
         "expiry_date": u.expiry_date.isoformat() if u.expiry_date else None
-    } for u in users]
+    } for u, vendor_username in rows]
+
+@router.get("/vendors")
+def list_vendors(db: Session = Depends(get_db), _=Depends(require_admin)):
+    Customer = aliased(User)
+    rows = (
+        db.query(User, func.count(Customer.id).label("customer_count"))
+        .outerjoin(Customer, Customer.vendor_id == User.id)
+        .filter(User.role == "vendor")
+        .group_by(User.id)
+        .order_by(User.created_at.desc())
+        .all()
+    )
+    return [{
+        "id": v.id,
+        "username": v.username,
+        "email": v.email,
+        "customer_count": count,
+        "created_at": v.created_at.isoformat() if v.created_at else None,
+    } for v, count in rows]
 
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db), _=Depends(require_admin)):
@@ -105,8 +129,12 @@ def delete_user(user_id: int, db: Session = Depends(get_db), _=Depends(require_a
     u = db.get(User, user_id)
     if not u:
         raise HTTPException(404, "User not found")
-    if u.is_admin:
+    if u.role == "admin":
         raise HTTPException(400, "Cannot delete admin user")
+    if u.role == "vendor":
+        customer_count = db.query(User).filter(User.vendor_id == u.id).count()
+        if customer_count:
+            raise HTTPException(400, f"Vendor has {customer_count} customers assigned, remove them first")
     db.delete(u)
     db.commit()
     return {"message": "User deleted successfully"}

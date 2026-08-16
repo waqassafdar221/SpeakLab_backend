@@ -14,7 +14,7 @@ def main():
         if db.query(User).filter((User.username == username) | (User.email == email)).first():
             print("User with that username or email already exists")
             return
-        u = User(username=username, email=email, password_hash=hash_pw(password), is_admin=True, credits=10000)
+        u = User(username=username, email=email, password_hash=hash_pw(password), role="admin", credits=10000)
         db.add(u); db.commit()
         print(f"Admin user created: {u.username}")
     finally:

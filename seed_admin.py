@@ -18,7 +18,7 @@ def seed():
                 username="admin",
                 email="admin@example.com",
                 password_hash=hash_pw("admin123"),
-                is_admin=True,
+                role="admin",
                 credits=0,
                 package_id=pkg.id,
             )
