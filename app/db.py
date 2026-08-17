@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM: str = ""
     FRONTEND_BASE_URL: str = "http://localhost:3000"
+    CRON_SECRET: str = ""
+    LOW_CREDIT_THRESHOLD: int = 50
+    EXPIRY_WARNING_DAYS: int = 3
 
     class Config:
         env_file = ".env"
@@ -74,3 +77,31 @@ def ensure_role_columns():
             conn.execute(text("ALTER TABLE users ADD COLUMN invite_token VARCHAR(64)"))
         if "invite_expires_at" not in column_info:
             conn.execute(text("ALTER TABLE users ADD COLUMN invite_expires_at TIMESTAMP WITH TIME ZONE"))
+        if "reset_token" not in column_info:
+            conn.execute(text("ALTER TABLE users ADD COLUMN reset_token VARCHAR(64)"))
+        if "reset_expires_at" not in column_info:
+            conn.execute(text("ALTER TABLE users ADD COLUMN reset_expires_at TIMESTAMP WITH TIME ZONE"))
+        if "low_credit_notified_at" not in column_info:
+            conn.execute(text("ALTER TABLE users ADD COLUMN low_credit_notified_at TIMESTAMP WITH TIME ZONE"))
+        if "expiry_notified_at" not in column_info:
+            conn.execute(text("ALTER TABLE users ADD COLUMN expiry_notified_at TIMESTAMP WITH TIME ZONE"))
+        if "monthly_price" not in column_info:
+            conn.execute(text("ALTER TABLE users ADD COLUMN monthly_price DOUBLE PRECISION DEFAULT 0"))
+            conn.execute(text("UPDATE users SET monthly_price = 0 WHERE monthly_price IS NULL"))
+
+
+def ensure_audit_log_fk():
+    """audit_logs.actor_id must not block deleting a user who has ever
+    performed a logged action — the log already keeps actor_username as a
+    snapshot, so the row should survive with actor_id set to NULL instead."""
+    inspector = inspect(engine)
+    if "audit_logs" not in inspector.get_table_names() or engine.dialect.name != "postgresql":
+        return
+    for fk in inspector.get_foreign_keys("audit_logs"):
+        if fk["constrained_columns"] == ["actor_id"] and fk.get("options", {}).get("ondelete") != "SET NULL":
+            with engine.begin() as conn:
+                conn.execute(text(f'ALTER TABLE audit_logs DROP CONSTRAINT "{fk["name"]}"'))
+                conn.execute(text(
+                    "ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_actor_id_fkey "
+                    "FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL"
+                ))

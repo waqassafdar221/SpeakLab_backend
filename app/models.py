@@ -1,4 +1,4 @@
-from sqlalchemy import String, Integer, Boolean, ForeignKey, Text, DateTime, func
+from sqlalchemy import String, Integer, Boolean, Float, ForeignKey, Text, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .db import Base
 
@@ -25,6 +25,23 @@ class User(Base):
     expiry_date: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), default=None)
     invite_token: Mapped[str | None] = mapped_column(String(64), default=None)
     invite_expires_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), default=None)
+    reset_token: Mapped[str | None] = mapped_column(String(64), default=None)
+    reset_expires_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), default=None)
+    low_credit_notified_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), default=None)
+    expiry_notified_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), default=None)
+    monthly_price: Mapped[float] = mapped_column(Float, default=0)
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    actor_username: Mapped[str] = mapped_column(String(80))
+    action: Mapped[str] = mapped_column(String(50))
+    target_type: Mapped[str | None] = mapped_column(String(30), default=None)
+    target_id: Mapped[int | None] = mapped_column(Integer, default=None)
+    target_username: Mapped[str | None] = mapped_column(String(80), default=None)
+    details: Mapped[str | None] = mapped_column(Text, default=None)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 class Voice(Base):
     __tablename__ = "voices"

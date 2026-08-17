@@ -20,6 +20,7 @@ class CreateUserReq(BaseModel):
     role: Literal["vendor", "customer"] = "customer"
     package_id: int | None = None
     initial_credits: int = 0
+    monthly_price: float = Field(default=0, ge=0)
 
 
 class CreateCustomerReq(BaseModel):
@@ -27,9 +28,17 @@ class CreateCustomerReq(BaseModel):
     email: EmailStr
     package_id: int | None = None
     initial_credits: int = 0
+    monthly_price: float = Field(default=0, ge=0)
 
 
 class SetPasswordReq(BaseModel):
+    token: str
+    password: str
+
+class ForgotPasswordReq(BaseModel):
+    email: EmailStr
+
+class ResetPasswordReq(BaseModel):
     token: str
     password: str
 

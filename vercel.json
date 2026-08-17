@@ -11,5 +11,11 @@
       "src": "/(.*)",
       "dest": "api/index.py"
     }
+  ],
+  "crons": [
+    {
+      "path": "/internal/cron/notifications",
+      "schedule": "0 9 * * *"
+    }
   ]
 }

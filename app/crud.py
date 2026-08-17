@@ -17,6 +17,7 @@ def create_user_row(
     vendor_id: int | None = None,
     package_id: int | None = None,
     initial_credits: int = 0,
+    monthly_price: float = 0,
 ) -> User:
     """Create a user row for any role, pending activation via an emailed invite
     link — no password is set here. Customers get a 30-day expiry; admin and
@@ -32,6 +33,7 @@ def create_user_row(
         vendor_id=vendor_id,
         credits=initial_credits,
         package_id=package_id,
+        monthly_price=monthly_price,
         expiry_date=datetime.now() + timedelta(days=30) if role == "customer" else None,
         invite_token=secrets.token_urlsafe(32),
         invite_expires_at=datetime.now() + timedelta(hours=INVITE_VALID_HOURS),

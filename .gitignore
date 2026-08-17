@@ -9,3 +9,5 @@ venv/
 dev.db
 *.db
 media/
+.vercel
+.env*
